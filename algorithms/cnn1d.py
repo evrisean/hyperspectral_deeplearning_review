@@ -59,8 +59,12 @@ def main():
 
     pixels, labels, num_class = \
                     mydata.loadData(args.dataset, num_components=args.components, preprocessing=args.preprocess)
+    
+    print('Data shape after loading into Python: cnn1d.py')
+    print(pixels.shape)
     pixels = pixels.reshape(-1, pixels.shape[-1])
-
+    print('Data shape after reshaping: cnn1d.py')
+    print(pixels.shape)
     stats = np.ones((args.repeat, num_class+3)) * -1000.0 # OA, AA, K, Aclass
     for pos in range(args.repeat):
         rstate = args.random_state+pos if args.random_state != None else None
@@ -82,16 +86,22 @@ def main():
         x_train = x_train[..., np.newaxis]
 
         n_bands, sequences = x_train.shape[1:]
+        print('Nbands (channels)')
+        print(n_bands)
+        print('sequences')
+        print(sequences)
         clf = get_model_compiled(n_bands, num_class)
         valdata = (x_val, keras_to_categorical(y_val, num_class)) if args.use_val else (x_test, keras_to_categorical(y_test, num_class))
+        print('Data shape before training: cnn1d.py')
+        print(x_train.shape)
         clf.fit(x_train, keras_to_categorical(y_train, num_class),
                         batch_size=args.batch_size,
-                        epochs=args.epochs,
-                        verbose=args.verbosetrain,
+                        epochs=20, #args.epochs,
+                        verbose=4, #args.verbosetrain,
                         validation_data=valdata,
-                        callbacks = [ModelCheckpoint("/tmp/best_model.h5", monitor='val_accuracy', verbose=0, save_best_only=True)])
+                        callbacks = [ModelCheckpoint("/tmp/best_model.keras", monitor='val_accuracy', verbose=0, save_best_only=True)])
         del clf; K.clear_session(); gc.collect()
-        clf = load_model("/tmp/best_model.h5")
+        clf = load_model("/tmp/best_model.keras")
         print("PARAMETERS", clf.count_params())
         stats[pos,:] = mymetrics.reports(np.argmax(clf.predict(x_test), axis=1), y_test)[2]
     print(args.dataset, list(stats[-1]))

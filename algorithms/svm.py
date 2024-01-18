@@ -41,8 +41,11 @@ def main():
 
     pixels, labels, num_class = \
                     mydata.loadData(args.dataset, num_components=args.components, preprocessing=args.preprocess)
+    print('Data shape after loading into Python: svm.py')
+    print(pixels.shape)
     pixels = pixels.reshape(-1, pixels.shape[-1])
-
+    print('Data shape after reshaping: svm.py')
+    print(pixels.shape)
     stats = np.ones((args.repeat, num_class+3)) * -1000.0 # OA, AA, K, Aclass
     for pos in range(args.repeat):
         if args.dataset in ["UH", "DIP", "DUP", "DIPr", "DUPr"]:
@@ -55,6 +58,8 @@ def main():
             rstate = args.random_state+pos if args.random_state != None else None
             x_train, x_test, y_train, y_test = \
                 mydata.split_data(pixels, labels, args.tr_percent, rand_state=rstate)
+        print('Data shape before training: svm.py')
+        print(x_train.shape)
         clf = SVC(gamma=args.g, C=args.C, tol=1e-7).fit(x_train, y_train)
         stats[pos,:] = mymetrics.reports(clf.predict(x_test), y_test)[2]
     print(stats[-1])

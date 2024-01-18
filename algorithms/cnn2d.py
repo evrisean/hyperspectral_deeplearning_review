@@ -91,9 +91,9 @@ def main():
                         epochs=args.epochs,
                         verbose=args.verbosetrain,
                         validation_data=valdata,
-                        callbacks = [ModelCheckpoint("/tmp/best_model.h5", monitor='val_accuracy', verbose=0, save_best_only=True)])
+                        callbacks = [ModelCheckpoint("/tmp/best_model.keras", monitor='val_accuracy', verbose=0, save_best_only=True)])
         del clf; K.clear_session(); gc.collect()
-        clf = load_model("/tmp/best_model.h5")
+        clf = load_model("/tmp/best_model.keras")
         print("PARAMETERS", clf.count_params())
         stats[pos,:] = mymetrics.reports(np.argmax(clf.predict(x_test), axis=1), y_test)[2]
     print(args.dataset, list(stats[-1]))
