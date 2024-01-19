@@ -4,7 +4,7 @@ import auxil.mymetrics as mymetrics
 import gc
 import keras.backend as K
 from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
+from keras.models import load_model, Model
 from keras.losses import categorical_crossentropy
 from keras.layers import Activation, BatchNormalization, Conv1D, Dense, Flatten, MaxPooling1D
 from keras.models import Sequential, Model
@@ -12,6 +12,7 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical as keras_to_categorical
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 
 
 def set_params(args):
@@ -90,22 +91,53 @@ def main():
         print(n_bands)
         print('sequences')
         print(sequences)
-        clf = get_model_compiled(n_bands, num_class)
+        # clf = get_model_compiled(n_bands, num_class)
         valdata = (x_val, keras_to_categorical(y_val, num_class)) if args.use_val else (x_test, keras_to_categorical(y_test, num_class))
         print('Data shape before training: cnn1d.py')
         print(x_train.shape)
-        clf.fit(x_train, keras_to_categorical(y_train, num_class),
-                        batch_size=args.batch_size,
-                        epochs=20, #args.epochs,
-                        verbose=4, #args.verbosetrain,
-                        validation_data=valdata,
-                        callbacks = [ModelCheckpoint("/tmp/best_model.keras", monitor='val_accuracy', verbose=0, save_best_only=True)])
-        del clf; K.clear_session(); gc.collect()
+        # clf.fit(x_train, keras_to_categorical(y_train, num_class),
+        #                batch_size=args.batch_size,
+        #                epochs=20, #args.epochs,
+        #                verbose=4, #args.verbosetrain,
+        #                validation_data=valdata,
+        #                callbacks = [ModelCheckpoint("/tmp/best_model.keras", monitor='val_accuracy', verbose=0, save_best_only=True)])
+        # del clf; K.clear_session(); gc.collect()
         clf = load_model("/tmp/best_model.keras")
+        print(clf.summary())
         print("PARAMETERS", clf.count_params())
         stats[pos,:] = mymetrics.reports(np.argmax(clf.predict(x_test), axis=1), y_test)[2]
-    print(args.dataset, list(stats[-1]))
+        # visualize filters
+        layer = 0
+        print(len(clf.layers))
+        filters, biases = clf.layers[layer].get_weights()
+        # normalize filter values to 0-1
+        f_min, f_max = filters.min(), filters.max()
+        filters = (filters-f_min) / (f_max - f_min)
+        print(filters.shape)
+        # plot first few filters
+        n_filters, ix = 6, 1
+        for i in range(n_filters):
+            # get the filter
+            f = filters[:,:,i]
+            # plot each channel separately
+            n_channels = 3
+            for j in range(n_channels):
+                ax = plt.subplot(n_filters, 3, ix)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                plt.imshow(f,cmap='gray')
+                ix+=1
+        plt.show()
 
+        # now lets get the output of the image after its been ran through the filter
+        model = Model(inputs=clf.inputs,outputs=clf.layers[1].output)
+        plt.plot(x_train[0,:,:])
+        plt.show()
+        feature_maps = model.predict(x_train)
+        plt.imshow(feature_maps[0,:,:])
+        plt.show()
+        print('done')
+    print(args.dataset, list(stats[-1]))
 if __name__ == '__main__':
     main()
 
